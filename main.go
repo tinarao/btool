@@ -12,18 +12,23 @@ import (
 	"time"
 
 	"github.com/tinarao/btool/internal/config"
+	"github.com/tinarao/btool/internal/tg"
 )
 
 func main() {
 	config.Load()
 
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalf("failed to get user home directory: %s\n", err.Error())
-		return
-	}
+	tg.Start(config.Cfg.BotToken)
+}
 
+func CreateBackup() {
 	for _, path := range config.Cfg.Paths {
+		homedir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatalf("failed to get user home directory: %s\n", err.Error())
+			return
+		}
+
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			log.Printf("warning: directory %s does not exist, skipping\n", path)
 			continue
@@ -50,7 +55,6 @@ func main() {
 
 		log.Printf("successfully archived: %s\n", target)
 	}
-
 }
 
 func TarDirectory(source, target string) error {

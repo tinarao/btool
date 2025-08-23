@@ -10,7 +10,7 @@ import (
 )
 
 type Config struct {
-	BotId     string   `yaml:"bot_id"`
+	BotToken  string   `yaml:"bot_token"`
 	Paths     []string `yaml:"paths"`
 	TargetDir string   `yaml:"target_dir"`
 }
