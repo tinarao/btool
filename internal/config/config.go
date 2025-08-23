@@ -13,6 +13,7 @@ type Config struct {
 	BotToken  string   `yaml:"bot_token"`
 	Paths     []string `yaml:"paths"`
 	TargetDir string   `yaml:"target_dir"`
+	ChatId    int64    `yaml:"chat_id"`
 }
 
 var Cfg *Config

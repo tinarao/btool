@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -18,10 +19,15 @@ import (
 func main() {
 	config.Load()
 
-	tg.Start(config.Cfg.BotToken)
+	b, err := tg.New()
+	if err != nil {
+		log.Fatalf("failed to start a bot: %s", err.Error())
+	}
+
+	CreateBackup(b)
 }
 
-func CreateBackup() {
+func CreateBackup(bot *tg.TelegramBot) {
 	for _, path := range config.Cfg.Paths {
 		homedir, err := os.UserHomeDir()
 		if err != nil {
@@ -54,6 +60,8 @@ func CreateBackup() {
 		}
 
 		log.Printf("successfully archived: %s\n", target)
+
+		bot.SendFile(context.Background(), target)
 	}
 }
 
