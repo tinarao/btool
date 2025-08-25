@@ -39,6 +39,8 @@ paths: [
 Для установки выполните: 
 
 ```bash
+git clone https://github.com/tinarao/btool.git 
+cd btool
 make install
 ```
 

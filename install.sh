@@ -17,9 +17,6 @@ add_to_config() {
     
     if ! grep -q "$line" "$file"; then
         echo "$line" >> "$file"
-        echo "Добавлено в $file"
-    else
-        echo "Уже есть в $file"
     fi
 }
 

@@ -42,7 +42,6 @@ func Load() error {
 }
 
 func (c *Config) SetLastBackupTime(isoDate string) {
-	// TODO backup and revert if err != nil
 	c.LastBackupDate = isoDate
 	c.save()
 }
@@ -67,6 +66,25 @@ func (c *Config) save() error {
 		return err
 	}
 
-	err = os.WriteFile(path, serialized, 0644)
-	return err
+	tmpFile, err := os.CreateTemp(filepath.Dir(path), "btool.tmp.yaml")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := tmpFile.Write(serialized); err != nil {
+		tmpFile.Close()
+		return err
+	}
+
+	if err := tmpFile.Sync(); err != nil {
+		tmpFile.Close()
+		return err
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+
+	return os.Rename(tmpFile.Name(), path)
 }
