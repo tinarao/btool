@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,33 +13,60 @@ import (
 
 	"github.com/tinarao/btool/internal/config"
 	"github.com/tinarao/btool/internal/tg"
+	"github.com/urfave/cli/v3"
 )
 
 func main() {
 	config.Load()
 
-	b, err := tg.New()
-	if err != nil {
-		log.Fatalf("failed to start a bot: %s", err.Error())
+	c := &cli.Command{
+		Name:  "btool",
+		Usage: "simple backup tool integrated with Telegram",
+		Commands: []*cli.Command{
+			{
+				Name:    "run",
+				Aliases: []string{"r"},
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					b, err := tg.New()
+					if err != nil {
+						fmt.Printf("failed to start a bot: %s", err.Error())
+						os.Exit(1)
+					}
+
+					CreateBackup(b)
+
+					return nil
+				},
+			},
+			{
+				Name:    "last_backup",
+				Aliases: []string{"lb"},
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					fmt.Println(config.Cfg.LastBackupDate)
+					return nil
+				},
+			},
+		},
 	}
 
-	CreateBackup(b)
+	ctx := context.Background()
+	c.Run(ctx, os.Args)
 }
 
 func CreateBackup(bot *tg.TelegramBot) {
 	for _, path := range config.Cfg.Paths {
 		homedir, err := os.UserHomeDir()
 		if err != nil {
-			log.Fatalf("failed to get user home directory: %s\n", err.Error())
-			return
+			fmt.Printf("failed to get user home directory: %s\n", err.Error())
+			os.Exit(1)
 		}
 
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			log.Printf("warning: directory %s does not exist, skipping\n", path)
+			fmt.Printf("warning: directory %s does not exist, skipping\n", path)
 			continue
 		}
 
-		timestamp := time.Now().Format(time.RFC3339)
+		timestamp := GetTodayIsoDate()
 
 		s := strings.Split(path, "/")
 		lastEntry := s[len(s)-1]
@@ -53,15 +79,21 @@ func CreateBackup(bot *tg.TelegramBot) {
 		filename := fmt.Sprintf("%s-%s.tar.gz", lastEntry, timestamp)
 		target := filepath.Join(targetDir, filename)
 
-		log.Printf("archiving %s to %s\n", path, target)
+		fmt.Printf("archiving %s to %s\n", path, target)
 
 		if err := TarDirectory(path, target); err != nil {
-			log.Fatalf("failed to tar: %s\n", err.Error())
+			fmt.Printf("failed to tar: %s\n", err.Error())
+			os.Exit(1)
 		}
 
-		log.Printf("successfully archived: %s\n", target)
+		fmt.Printf("successfully archived: %s\n", target)
 
-		bot.SendFile(context.Background(), target)
+		if err := bot.SendFile(context.Background(), target); err != nil {
+			fmt.Printf("failed to send a file via Telegram: %s\n", err.Error())
+			os.Exit(1)
+		}
+
+		config.Cfg.SetLastBackupTime(timestamp)
 	}
 }
 
@@ -115,4 +147,8 @@ func TarDirectory(source, target string) error {
 		_, err = io.Copy(tarWriter, file)
 		return err
 	})
+}
+
+func GetTodayIsoDate() string {
+	return time.Now().Format(time.RFC3339)
 }

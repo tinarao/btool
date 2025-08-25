@@ -6,3 +6,9 @@ run: build
 
 build:
 	go build -o ${TARGET}
+
+install: build
+	chmod +x ./install.sh
+	./install.sh
+
+	
